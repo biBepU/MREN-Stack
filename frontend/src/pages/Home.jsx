@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react'
 import {useLocation, useNavigate} from 'react-router-dom'
 import ReceipeCard from '../components/ReceipeCard'
 import Pagination from '../components/Pagination';
+import axios from '../harpers/axios'
 export default function Home() {
-
 
 
   let [receipes,setReceipes] = useState([])
@@ -19,11 +19,11 @@ export default function Home() {
   useEffect(() => {
     const fetchReceipes = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/receipes?page=${page}`);
-        if (!response.ok) {
+        const response = await axios(`/api/receipes?page=${page}`);
+        if (!response.status==200) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
+        let data =  response.data
         setReceipes(data.data);
         setLinks(data.links);
         window.scroll({ top: 0, left: 0, behavior: 'smooth' });
@@ -36,18 +36,6 @@ export default function Home() {
     fetchReceipes();
   }, [page]);
  
-
-  // let links ={
-  //     nextPage : true,
-  //     prevPage : false,
-  //     currentPage : 1,
-  //     loopableLink :[
-  //       {number :1},
-  //       {number :2},
-  //       {number :3}
-  //     ]
-
-  // };
   let onDeleted=(_id)=>{
    
     if(receipes.length===1 && page>1){
@@ -61,7 +49,8 @@ export default function Home() {
 
   }
   return (
-   <div className='space-y-3 w-full'> 
+ <>
+   <div className='space-y-3 w-full grid grid-cols-3 gap-3'> 
     {
       !!receipes.length && ( receipes.map(receipe=>(
        <ReceipeCard  key={receipe._id} receipe={receipe} onDeleted={onDeleted}/>
@@ -70,7 +59,9 @@ export default function Home() {
       )
     }
 
-{!!links&& <Pagination links={links} page={page}/>}
    </div>
+
+  {!!links&& <Pagination links={links} page={page}/>}
+ </>
   )
 }

@@ -9,7 +9,7 @@ function App() {
   return (
   <>
  <NavBar/>
-    <div className=' flex  p-5 '>
+    <div className='   p-5 '>
     <Outlet/>
     </div>
   </>

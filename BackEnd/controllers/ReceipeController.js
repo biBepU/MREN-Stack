@@ -1,7 +1,10 @@
 const Receipe = require("../models/Receipe");
-
+const fs = require('fs').promises;
 const mongoose = require('mongoose');
-
+const removeFile = require('../harper/removefile');
+const sendEmail = require("../harper/sendEmail");
+const handlePhotoUpload = require('../harper/handlePhotoUpload')
+const User = require('../models/User')
 const ReceipeController = {
     index :async(req,res)=>{
 
@@ -33,7 +36,7 @@ const ReceipeController = {
             links.loopableLink.push({number})
             
         }
-        console.log(links)
+       
         let response = {
             links,
             data : receipes
@@ -45,18 +48,39 @@ const ReceipeController = {
 
     store : async(req,res)=>{
 
-       
-            const {title,description,ingredients} = req.body;
+       try{
         
-            const receipe = await Receipe.create({
-                title,
-                description,
-                ingredients
+        const {title,description,ingredients} = req.body;
+        
+        const receipe = await Receipe.create({
+            title,
+            description,
+            ingredients
 
-            })
+        })
+
+        let users = await User.find(null,['email'])
+        let emails = users.map(user=>user.email)
+
+        emails = emails.filter(email=>email!== req.user.email)
        
         
-            res.json(receipe)
+        await sendEmail({
+          view : "email",
+          data : {
+              name :req.user.name,
+              receipe
+          },
+          from : req.user.email,
+          to : emails,
+          subject :'new receipe is created by someone'
+       })
+       return res.send(receipe)
+    
+       
+       }catch(e){
+        return res.status(500).json({mesg:e.message})
+       }
        
         
     },
@@ -88,6 +112,7 @@ const ReceipeController = {
             }
 
             let receipe = await Receipe.findByIdAndDelete(id)
+            removeFile(__dirname+"/../public"+receipe.photo)
             if (!receipe){
                 return res.status(400).json({mesg:"receipe not found"})
             }
@@ -109,6 +134,8 @@ const ReceipeController = {
             let receipe = await Receipe.findByIdAndUpdate(id,{
                 ...req.body
             })
+            
+           removeFile(__dirname+"/../public"+receipe.photo)
             if (!receipe){
                 return res.status(400).json({mesg:"receipe not found"})
             }
@@ -117,17 +144,11 @@ const ReceipeController = {
         }catch(e){
             return res.status(500).json({mesg:"internet server error"})
         }
-
-      
-
-
-    }
-
-
-
-  
-  
-
+    },
+    upload: async (req, res) => {
+    
+    await handlePhotoUpload(req, res, Receipe);
+  }
 };
 
 
